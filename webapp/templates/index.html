@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>مولّد بطاقات الوصف الوظيفي</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>مولّد بطاقات الوصف الوظيفي</h1>
+    <p class="subtitle">أدخل مسمى وظيفيًا واحدًا للحصول على بطاقة وصف وظيفي كاملة قابلة للتنزيل</p>
+  </header>
+
+  <main class="layout">
+    <section class="panel form-panel">
+      <form method="post" action="{{ url_for('generate') }}" class="job-form">
+        <label for="job_title">المسمى الوظيفي</label>
+        <input type="text" id="job_title" name="job_title" placeholder="مثال: مدير تنفيذي - تطوير حلول الذكاء الاصطناعي"
+               value="{{ result.content.job_title if result else '' }}" required>
+        <button type="submit" class="btn btn-primary">توليد البطاقة</button>
+      </form>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <p class="flash flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% if result %}
+        <div class="result-card">
+          <div class="result-header">
+            <span class="badge badge-gold">Tier {{ result.content.level_tier }} — {{ result.content.level_label }}</span>
+            {% if result.from_cache %}
+              <span class="badge badge-teal">من الأرشيف — تم التوليد سابقًا في {{ result.record.created_at[:10] }}</span>
+            {% else %}
+              <span class="badge badge-green">تم التوليد الآن (نسخة {{ result.record.version }})</span>
+            {% endif %}
+          </div>
+
+          <h2>{{ result.content.job_title }}</h2>
+
+          <h3>الهدف العام للوظيفة</h3>
+          <p>{{ result.content.job_purpose }}</p>
+
+          <h3>المهام والمسؤوليات الوظيفية الأساسية</h3>
+          {% for cat in result.content.core_responsibilities %}
+            <h4>{{ cat.category }}</h4>
+            <ul>
+              {% for duty in cat.duties %}<li>{{ duty }}</li>{% endfor %}
+            </ul>
+          {% endfor %}
+
+          <h3>المهام والمسؤوليات الوظيفية المتخصصة</h3>
+          {% for cat in result.content.specialized_responsibilities %}
+            <h4>{{ cat.category }}</h4>
+            <ul>
+              {% for duty in cat.duties %}<li>{{ duty }}</li>{% endfor %}
+            </ul>
+          {% endfor %}
+
+          <h3>الحد الأدنى للمؤهلات العلمية وسنوات الخبرة</h3>
+          <ul class="qual-list">
+            <li>المؤهل العلمي المطلوب: {{ result.content.qualifications.education_required }}</li>
+            {% if result.content.qualifications.education_preferred %}
+              <li>المؤهل العلمي المفضل: {{ result.content.qualifications.education_preferred }}</li>
+            {% endif %}
+            <li>سنوات الخبرة العامة: {{ result.content.qualifications.experience_years }}</li>
+            {% if result.content.qualifications.supervisory_years %}
+              <li>سنوات الخبرة الإشرافية: {{ result.content.qualifications.supervisory_years }}</li>
+            {% endif %}
+            <li>اللغة العربية: {{ result.content.qualifications.language_arabic }}</li>
+            <li>اللغة الإنجليزية: {{ result.content.qualifications.language_english }}</li>
+          </ul>
+
+          {% if result.content.get('generation_source') == 'fallback_template' %}
+            <p class="flash flash-error">
+              تنبيه: تم توليد الأقسام 2 و4 و5 بصياغة احتياطية عامة (بدون ANTHROPIC_API_KEY) — راجعها قبل الاعتماد.
+            </p>
+          {% endif %}
+
+          <div class="result-actions">
+            <a class="btn btn-primary" href="{{ url_for('download', record_id=result.record.id) }}">تنزيل ملف Word</a>
+            <form method="post" action="{{ url_for('generate') }}" class="inline-form">
+              <input type="hidden" name="job_title" value="{{ result.content.job_title }}">
+              <input type="hidden" name="force_regenerate" value="1">
+              <button type="submit" class="btn btn-secondary">إعادة التوليد (نسخة جديدة)</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    <aside class="panel history-panel">
+      <h2>البطاقات المولَّدة سابقًا</h2>
+      {% if history %}
+        <ul class="history-list">
+          {% for row in history %}
+            <li>
+              <div class="history-title">{{ row.content.job_title }}</div>
+              <div class="history-meta">
+                Tier {{ row.level_tier }} · نسخة {{ row.version }} · {{ row.updated_at[:10] }}
+              </div>
+              <a class="btn btn-small" href="{{ url_for('download', record_id=row.id) }}">تنزيل</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-state">لا توجد بطاقات مولَّدة بعد.</p>
+      {% endif %}
+    </aside>
+  </main>
+</body>
+</html>
