@@ -4,7 +4,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Pt, RGBColor
+from docx.shared import Cm, Pt, RGBColor
 
 HEADER_GREEN = "286140"
 BORDER_GRAY = "C7C8CA"
@@ -31,6 +31,20 @@ def _set_run_arabic(run, bold=False, color=None, size=11):
         rFonts = OxmlElement("w:rFonts")
         rPr.append(rFonts)
     rFonts.set(qn("w:cs"), FONT_NAME)
+
+
+def _set_table_rtl(table):
+    """يجعل جدول Word يُعرض من اليمين إلى اليسار (ترتيب الأعمدة والحدود مطابق للعربية)."""
+    tblPr = table._tbl.tblPr
+    bidi = OxmlElement("w:bidiVisual")
+    tblPr.append(bidi)
+
+
+def _set_column_widths(table, widths_cm):
+    table.autofit = False
+    for row in table.rows:
+        for cell, width in zip(row.cells, widths_cm):
+            cell.width = Cm(width)
 
 
 def _shade_cell(cell, hex_color: str):
@@ -73,6 +87,7 @@ def _duties_table(doc, rows):
     for category, duties in rows:
         table = doc.add_table(rows=0, cols=1)
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        _set_table_rtl(table)
         header_row = table.add_row()
         _cell_text(header_row.cells[0], category, bold=True, color="FFFFFF", header=True)
         _shade_cell(header_row.cells[0], HEADER_GREEN)
@@ -111,12 +126,14 @@ def build_document(content: dict) -> Document:
     basic_info = content["basic_info"]
     table = doc.add_table(rows=0, cols=2)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    _set_table_rtl(table)
     _section_table_row(table, "المسمى الوظيفي", content["job_title"])
     _section_table_row(table, "رمز الوظيفة", basic_info.get("job_code", ""))
     _section_table_row(table, "المسؤول المباشر", basic_info.get("direct_manager", ""))
     _section_table_row(table, "القطاع", basic_info.get("sector", ""))
     _section_table_row(table, "الإدارة", basic_info.get("department", ""))
     _section_table_row(table, "القسم", basic_info.get("section", ""))
+    _set_column_widths(table, [5, 11])
 
     # القسم 2 — الهدف العام للوظيفة
     _add_heading(doc, "الهدف العام للوظيفة", 2)
@@ -139,6 +156,7 @@ def build_document(content: dict) -> Document:
     q = content["qualifications"]
     qual_table = doc.add_table(rows=0, cols=2)
     qual_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    _set_table_rtl(qual_table)
     _section_table_row(qual_table, "المؤهل العلمي المطلوب", q.get("education_required", ""))
     if q.get("education_preferred"):
         _section_table_row(qual_table, "المؤهل العلمي المفضل", q.get("education_preferred", ""))
@@ -147,6 +165,7 @@ def build_document(content: dict) -> Document:
         _section_table_row(qual_table, "سنوات الخبرة الإشرافية", q.get("supervisory_years", ""))
     _section_table_row(qual_table, "اللغة العربية", q.get("language_arabic", ""))
     _section_table_row(qual_table, "اللغة الإنجليزية", q.get("language_english", ""))
+    _set_column_widths(qual_table, [5, 11])
 
     return doc
 

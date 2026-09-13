@@ -4,21 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>مولّد بطاقات الوصف الوظيفي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <h1>مولّد بطاقات الوصف الوظيفي</h1>
-    <p class="subtitle">أدخل مسمى وظيفيًا واحدًا للحصول على بطاقة وصف وظيفي كاملة قابلة للتنزيل</p>
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" stroke="white" stroke-width="1.6"/>
+            <path d="M9 3.5h6M8 11h8M8 15h5" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <div>
+          <h1>مولّد بطاقات الوصف الوظيفي</h1>
+          <p class="subtitle">أدخل مسمى وظيفيًا واحدًا للحصول على بطاقة وصف وظيفي كاملة قابلة للتنزيل</p>
+        </div>
+      </div>
+    </div>
   </header>
 
   <main class="layout">
     <section class="panel form-panel">
-      <form method="post" action="{{ url_for('generate') }}" class="job-form">
+      <form method="post" action="{{ url_for('generate') }}" class="job-form" id="job-form">
         <label for="job_title">المسمى الوظيفي</label>
-        <input type="text" id="job_title" name="job_title" placeholder="مثال: مدير تنفيذي - تطوير حلول الذكاء الاصطناعي"
-               value="{{ result.content.job_title if result else '' }}" required>
-        <button type="submit" class="btn btn-primary">توليد البطاقة</button>
+        <div class="input-row">
+          <input type="text" id="job_title" name="job_title" placeholder="مثال: مدير تنفيذي - تطوير حلول الذكاء الاصطناعي"
+                 value="{{ result.content.job_title if result else '' }}" required autocomplete="off">
+          <button type="submit" class="btn btn-primary" id="submit-btn">
+            <span class="btn-label">توليد البطاقة</span>
+          </button>
+        </div>
+        <p class="hint">جرّب مسميات من مستويات مختلفة: نائب رئيس، مدير تنفيذي، مدير عام، قائد فريق، أخصائي، محلل، فني...</p>
       </form>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -30,65 +50,95 @@
       {% endwith %}
 
       {% if result %}
-        <div class="result-card">
+        <article class="result-card">
           <div class="result-header">
             <span class="badge badge-gold">Tier {{ result.content.level_tier }} — {{ result.content.level_label }}</span>
             {% if result.from_cache %}
-              <span class="badge badge-teal">من الأرشيف — تم التوليد سابقًا في {{ result.record.created_at[:10] }}</span>
+              <span class="badge badge-teal">من الأرشيف — وُلِّدت في {{ result.record.created_at[:10] }}</span>
             {% else %}
-              <span class="badge badge-green">تم التوليد الآن (نسخة {{ result.record.version }})</span>
+              <span class="badge badge-green">تم التوليد الآن · نسخة {{ result.record.version }}</span>
             {% endif %}
           </div>
 
-          <h2>{{ result.content.job_title }}</h2>
+          <h2 class="result-title">{{ result.content.job_title }}</h2>
 
-          <h3>الهدف العام للوظيفة</h3>
-          <p>{{ result.content.job_purpose }}</p>
+          <section class="result-section">
+            <h3><span class="section-num">1</span> الهدف العام للوظيفة</h3>
+            <p class="purpose-text">{{ result.content.job_purpose }}</p>
+          </section>
 
-          <h3>المهام والمسؤوليات الوظيفية الأساسية</h3>
-          {% for cat in result.content.core_responsibilities %}
-            <h4>{{ cat.category }}</h4>
-            <ul>
-              {% for duty in cat.duties %}<li>{{ duty }}</li>{% endfor %}
-            </ul>
-          {% endfor %}
+          <section class="result-section">
+            <h3><span class="section-num">2</span> المهام والمسؤوليات الوظيفية الأساسية</h3>
+            {% for cat in result.content.core_responsibilities %}
+              <details class="duty-block" {{ 'open' if loop.first else '' }}>
+                <summary>{{ cat.category }}</summary>
+                <ul>
+                  {% for duty in cat.duties %}<li>{{ duty }}</li>{% endfor %}
+                </ul>
+              </details>
+            {% endfor %}
+          </section>
 
-          <h3>المهام والمسؤوليات الوظيفية المتخصصة</h3>
-          {% for cat in result.content.specialized_responsibilities %}
-            <h4>{{ cat.category }}</h4>
-            <ul>
-              {% for duty in cat.duties %}<li>{{ duty }}</li>{% endfor %}
-            </ul>
-          {% endfor %}
+          <section class="result-section">
+            <h3><span class="section-num">3</span> المهام والمسؤوليات الوظيفية المتخصصة</h3>
+            {% for cat in result.content.specialized_responsibilities %}
+              <details class="duty-block" {{ 'open' if loop.first else '' }}>
+                <summary>{{ cat.category }}</summary>
+                <ul>
+                  {% for duty in cat.duties %}<li>{{ duty }}</li>{% endfor %}
+                </ul>
+              </details>
+            {% endfor %}
+          </section>
 
-          <h3>الحد الأدنى للمؤهلات العلمية وسنوات الخبرة</h3>
-          <ul class="qual-list">
-            <li>المؤهل العلمي المطلوب: {{ result.content.qualifications.education_required }}</li>
-            {% if result.content.qualifications.education_preferred %}
-              <li>المؤهل العلمي المفضل: {{ result.content.qualifications.education_preferred }}</li>
-            {% endif %}
-            <li>سنوات الخبرة العامة: {{ result.content.qualifications.experience_years }}</li>
-            {% if result.content.qualifications.supervisory_years %}
-              <li>سنوات الخبرة الإشرافية: {{ result.content.qualifications.supervisory_years }}</li>
-            {% endif %}
-            <li>اللغة العربية: {{ result.content.qualifications.language_arabic }}</li>
-            <li>اللغة الإنجليزية: {{ result.content.qualifications.language_english }}</li>
-          </ul>
-
-          {% if result.content.get('generation_source') == 'fallback_template' %}
-            <p class="flash flash-error">
-              تنبيه: تم توليد الأقسام 2 و4 و5 بصياغة احتياطية عامة (بدون ANTHROPIC_API_KEY) — راجعها قبل الاعتماد.
-            </p>
-          {% endif %}
+          <section class="result-section">
+            <h3><span class="section-num">4</span> الحد الأدنى للمؤهلات العلمية وسنوات الخبرة</h3>
+            <div class="qual-grid">
+              <div class="qual-item">
+                <span class="qual-label">المؤهل العلمي المطلوب</span>
+                <span class="qual-value">{{ result.content.qualifications.education_required }}</span>
+              </div>
+              {% if result.content.qualifications.education_preferred %}
+              <div class="qual-item">
+                <span class="qual-label">المؤهل العلمي المفضل</span>
+                <span class="qual-value">{{ result.content.qualifications.education_preferred }}</span>
+              </div>
+              {% endif %}
+              <div class="qual-item">
+                <span class="qual-label">سنوات الخبرة العامة</span>
+                <span class="qual-value">{{ result.content.qualifications.experience_years }}</span>
+              </div>
+              {% if result.content.qualifications.supervisory_years %}
+              <div class="qual-item">
+                <span class="qual-label">سنوات الخبرة الإشرافية</span>
+                <span class="qual-value">{{ result.content.qualifications.supervisory_years }}</span>
+              </div>
+              {% endif %}
+              <div class="qual-item">
+                <span class="qual-label">اللغة العربية</span>
+                <span class="qual-value">{{ result.content.qualifications.language_arabic }}</span>
+              </div>
+              <div class="qual-item">
+                <span class="qual-label">اللغة الإنجليزية</span>
+                <span class="qual-value">{{ result.content.qualifications.language_english }}</span>
+              </div>
+            </div>
+          </section>
 
           <div class="result-actions">
-            <a class="btn btn-primary" href="{{ url_for('download', record_id=result.record.id) }}">تنزيل ملف Word</a>
+            <a class="btn btn-primary" href="{{ url_for('download', record_id=result.record.id) }}">
+              تنزيل ملف Word
+            </a>
             <form method="post" action="{{ url_for('generate') }}" class="inline-form">
               <input type="hidden" name="job_title" value="{{ result.content.job_title }}">
               <input type="hidden" name="force_regenerate" value="1">
               <button type="submit" class="btn btn-secondary">إعادة التوليد (نسخة جديدة)</button>
             </form>
           </div>
+        </article>
+      {% else %}
+        <div class="empty-hero">
+          <p>ستظهر بطاقة الوصف الوظيفي هنا بعد التوليد.</p>
         </div>
       {% endif %}
     </section>
@@ -98,10 +148,12 @@
       {% if history %}
         <ul class="history-list">
           {% for row in history %}
-            <li>
+            <li class="history-item">
               <div class="history-title">{{ row.content.job_title }}</div>
               <div class="history-meta">
-                Tier {{ row.level_tier }} · نسخة {{ row.version }} · {{ row.updated_at[:10] }}
+                <span class="chip">Tier {{ row.level_tier }}</span>
+                <span>نسخة {{ row.version }}</span>
+                <span>{{ row.updated_at[:10] }}</span>
               </div>
               <a class="btn btn-small" href="{{ url_for('download', record_id=row.id) }}">تنزيل</a>
             </li>
@@ -112,5 +164,18 @@
       {% endif %}
     </aside>
   </main>
+
+  <footer class="page-footer">
+    <p>مولّد بطاقات الوصف الوظيفي — أداة داخلية للموارد البشرية</p>
+  </footer>
+
+  <script>
+    document.getElementById('job-form').addEventListener('submit', function () {
+      var btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.classList.add('is-loading');
+      btn.querySelector('.btn-label').textContent = 'جارٍ التوليد...';
+    });
+  </script>
 </body>
 </html>
