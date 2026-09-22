@@ -61,11 +61,9 @@
       {% if result %}
         <article class="result-card">
           <div class="result-header">
-            <span class="badge badge-gold">المستوى {{ result.content.level_tier | ar_num }} — {{ result.content.level_label }}</span>
+            <span class="badge badge-gold">{{ result.content.level_label }}</span>
             {% if result.from_cache %}
               <span class="badge badge-teal">من الأرشيف — وُلِّدت في {{ result.record.created_at[:10] }}</span>
-            {% else %}
-              <span class="badge badge-green">تم التوليد الآن · نسخة {{ result.record.version | ar_num }}</span>
             {% endif %}
           </div>
 
@@ -137,6 +135,17 @@
             </div>
           </section>
 
+          {% if result.content.technical_competencies %}
+          <section class="result-section">
+            <h3><span class="section-num">5</span> الجدارات الفنية</h3>
+            <ul class="competency-list">
+              {% for comp in result.content.technical_competencies %}
+                <li><strong>{{ comp.name }}:</strong> {{ comp.definition }}</li>
+              {% endfor %}
+            </ul>
+          </section>
+          {% endif %}
+
           <div class="result-actions">
             <a class="btn btn-primary" href="{{ url_for('download', record_id=result.record.id) }}">
               تنزيل ملف Word
@@ -159,19 +168,27 @@
     <aside class="panel history-panel">
       <h2>البطاقات المولَّدة سابقًا</h2>
       {% if history %}
-        <ul class="history-list">
+        <input type="text" id="history-search" placeholder="ابحث عن مسمى وظيفي..." autocomplete="off">
+        <p class="empty-state" id="history-no-match" hidden>لا توجد نتائج مطابقة.</p>
+        <ul class="history-list" id="history-list">
           {% for row in history %}
-            <li class="history-item">
+            <li class="history-item" data-search="{{ (row.content.job_title ~ ' ' ~ row.sub_units_raw) | lower }}">
               <div class="history-title">{{ row.content.job_title }}</div>
               {% if row.sub_units_raw %}
                 <div class="history-subunits">{{ row.sub_units_raw }}</div>
               {% endif %}
               <div class="history-meta">
-                <span class="chip">المستوى {{ row.level_tier | ar_num }}</span>
+                <span class="chip">{{ row.content.level_label }}</span>
                 <span>نسخة {{ row.version | ar_num }}</span>
                 <span>{{ row.updated_at[:10] }}</span>
               </div>
-              <a class="btn btn-small" href="{{ url_for('download', record_id=row.id) }}">تنزيل</a>
+              <div class="history-actions">
+                <a class="btn btn-small" href="{{ url_for('download', record_id=row.id) }}">تنزيل</a>
+                <form method="post" action="{{ url_for('delete', record_id=row.id) }}" class="inline-form"
+                      onsubmit="return confirm('حذف هذه البطاقة نهائيًا؟');">
+                  <button type="submit" class="btn btn-small btn-danger">حذف</button>
+                </form>
+              </div>
             </li>
           {% endfor %}
         </ul>
@@ -192,6 +209,21 @@
       btn.classList.add('is-loading');
       btn.querySelector('.btn-label').textContent = 'جارٍ التوليد...';
     });
+
+    var searchInput = document.getElementById('history-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        var query = searchInput.value.trim().toLowerCase();
+        var items = document.querySelectorAll('#history-list .history-item');
+        var visibleCount = 0;
+        items.forEach(function (item) {
+          var match = item.getAttribute('data-search').indexOf(query) !== -1;
+          item.hidden = !match;
+          if (match) visibleCount++;
+        });
+        document.getElementById('history-no-match').hidden = visibleCount !== 0;
+      });
+    }
   </script>
 </body>
 </html>

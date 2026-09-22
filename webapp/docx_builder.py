@@ -167,6 +167,17 @@ def build_document(content: dict) -> Document:
     _section_table_row(qual_table, "اللغة الإنجليزية", q.get("language_english", ""))
     _set_column_widths(qual_table, [5, 11])
 
+    # القسم 6 — الجدارات الفنية
+    competencies = content.get("technical_competencies") or []
+    if competencies:
+        _add_heading(doc, "الجدارات الفنية", 6)
+        comp_table = doc.add_table(rows=0, cols=2)
+        comp_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        _set_table_rtl(comp_table)
+        for item in competencies:
+            _section_table_row(comp_table, item.get("name", ""), item.get("definition", ""))
+        _set_column_widths(comp_table, [5, 11])
+
     return doc
 
 

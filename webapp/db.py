@@ -115,6 +115,13 @@ def list_history(limit: int = 50):
     return [dict(r) for r in rows]
 
 
+def delete_record(record_id: int):
+    conn = get_connection()
+    conn.execute("DELETE FROM job_descriptions WHERE id = ?", (record_id,))
+    conn.commit()
+    conn.close()
+
+
 def list_versions(job_title_normalized: str):
     conn = get_connection()
     rows = conn.execute(

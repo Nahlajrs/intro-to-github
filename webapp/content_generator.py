@@ -19,6 +19,15 @@ SOURCING_FRAMEWORKS = (
     "عند الحاجة مثل SDAIA وSAMA وCMA)."
 )
 
+COMPETENCY_FRAMEWORKS = (
+    "SFIA (Skills Framework for the Information Age) للجدارات التقنية في مجالات تقنية "
+    "المعلومات والبيانات والذكاء الاصطناعي، NICE Cybersecurity Workforce Framework "
+    "للأمن السيبراني، PMI Talent Triangle لإدارة المشاريع، SHRM/CIPD Competency Model "
+    "للموارد البشرية، IIA Global Internal Audit Competency Framework للتدقيق الداخلي، "
+    "CFA Institute Competency Framework للمالية والاستثمار، وO*NET OnLine (قسم "
+    "Skills/Knowledge) كمرجع عام لأي تخصص آخر."
+)
+
 TONE_BY_TIER = {
     1: "لغة قيادة واستراتيجية وإشراف عام على نطاق واسع (مسؤول عن الإشراف على... يقود...)",
     2: "لغة قيادة واستراتيجية وإشراف عام على نطاق واسع (مسؤول عن الإشراف على... يقود...)",
@@ -69,11 +78,19 @@ def _build_prompt(analysis: dict, sub_units=None) -> str:
     "education_preferred": "مؤهل أو شهادة مهنية مفضلة إضافية إن وجدت",
     "language_arabic": "المستوى المطلوب (مثال: متقدم)",
     "language_english": "المستوى المطلوب (مثال: متقدم)"
-  }}
+  }},
+  "technical_competencies": [
+    {{"name": "اسم الجدارة الفنية", "definition": "تعريف موجز من جملة إلى جملتين يوضح المقصود بهذه الجدارة في سياق هذه الوظيفة تحديدًا"}},
+    "... (8 إلى 12 جدارة فنية)"
+  ]
 }}
 
 تعليمات specialized_responsibilities:
 {categories_instruction}
+
+تعليمات technical_competencies:
+استند إلى الأطر العالمية المعترف بها لتعريف الجدارات حسب التخصص: {COMPETENCY_FRAMEWORKS}
+اختر 8 إلى 12 جدارة فنية (Technical Competencies) — وليست جدارات سلوكية عامة كالتواصل أو العمل الجماعي — مرتبطة تحديدًا بمجال {domain} وبما يناسب عمق ونطاق المستوى {tier} (جدارات أعمق واستراتيجية للمستويات الإدارية، وجدارات تنفيذية/تقنية مباشرة وأكثر تخصصًا للمستويات التنفيذية غير الإشرافية).
 
 متطلبات إلزامية للجودة:
 - كل عبارة في duties يجب أن تكون جملة تفصيلية مكتملة المعنى تصف: ماذا يُنفَّذ، وكيف (بأي أداة/منهجية/معيار محدد قدر الإمكان)، ولماذا (الأثر أو الغاية). تجنّب العبارات القصيرة أو العناوين المجردة مثل "الإشراف على النماذج" — استبدلها بصياغة مفصّلة على غرار "الإشراف على دورة حياة نماذج التعلّم الآلي وفق منهجية MLOps القياسية (تجريب، نشر، مراقبة، إعادة تدريب) لضمان استقرار الأداء الإنتاجي".
@@ -114,6 +131,55 @@ def _fallback_duties_for_sub_unit(category: str, domain: str, tier: int) -> list
         f"مواكبة أحدث التطورات والاتجاهات المهنية ذات الصلة بمجال {category} وتقييم إمكانية الاستفادة منها لتحسين الأداء الحالي.",
         f"متابعة مستوى رضا أصحاب المصلحة المستفيدين من أنشطة {category} والعمل على تحسين جودة الخدمة المقدمة باستمرار.",
     ]
+
+
+def _fallback_technical_competencies(domain: str, tier: int) -> list:
+    """جدارات فنية عامة مرتبطة بالمجال عند عدم توفر ANTHROPIC_API_KEY — مسودة تحتاج مراجعة بشرية."""
+    items = [
+        {
+            "name": f"المعرفة التقنية بمجال {domain}",
+            "definition": f"الإلمام بالمفاهيم والأدوات والمنهجيات الأساسية المستخدمة في {domain}، والقدرة على تطبيقها بكفاءة في سياق العمل اليومي.",
+        },
+        {
+            "name": "تحليل البيانات واتخاذ القرار المبني على الأدلة",
+            "definition": "القدرة على جمع البيانات ذات الصلة وتحليلها لاستخلاص رؤى تدعم اتخاذ قرارات مبنية على أدلة موضوعية بدلًا من الافتراضات.",
+        },
+        {
+            "name": "استخدام الأنظمة والأدوات الرقمية ذات الصلة",
+            "definition": f"الكفاءة في استخدام الأنظمة والبرمجيات والمنصات الرقمية المعتمدة لتنفيذ أعمال {domain} بفعالية.",
+        },
+        {
+            "name": "إدارة المشاريع والمبادرات",
+            "definition": "القدرة على التخطيط لتنفيذ المبادرات والمشاريع المتعلقة بالعمل ومتابعتها ضمن نطاق وجدول زمني وموارد محددة.",
+        },
+        {
+            "name": "الأمن والامتثال التقني",
+            "definition": f"فهم المتطلبات الأمنية والتنظيمية ذات الصلة بمجال {domain}، والالتزام بتطبيقها في جميع مراحل العمل.",
+        },
+        {
+            "name": "حل المشكلات التقنية",
+            "definition": "القدرة على تشخيص المشكلات الفنية والتشغيلية المرتبطة بالعمل وتحديد الحلول المناسبة لها بأسلوب منهجي.",
+        },
+        {
+            "name": "التوثيق الفني وإعداد التقارير",
+            "definition": "القدرة على إعداد وثائق وتقارير فنية دقيقة وواضحة تعكس سير العمل والنتائج المحققة.",
+        },
+    ]
+    if tier <= 4:
+        items.append({
+            "name": f"التخطيط الاستراتيجي في مجال {domain}",
+            "definition": f"القدرة على ربط أعمال {domain} بالأهداف الاستراتيجية للجهة، وتحديد الأولويات والمبادرات التي تحقق أثرًا طويل المدى.",
+        })
+        items.append({
+            "name": "تقييم المخاطر التقنية والتشغيلية",
+            "definition": f"القدرة على تحديد وتقييم المخاطر التقنية والتشغيلية المرتبطة بمجال {domain} واقتراح إجراءات للتخفيف منها.",
+        })
+    else:
+        items.append({
+            "name": f"التنفيذ الفني الدقيق في مجال {domain}",
+            "definition": f"القدرة على تنفيذ المهام الفنية التفصيلية في مجال {domain} بدقة عالية والتزام كامل بالمواصفات والمعايير المعتمدة.",
+        })
+    return items
 
 
 def _fallback(analysis: dict, sub_units=None) -> dict:
@@ -157,7 +223,7 @@ def _fallback(analysis: dict, sub_units=None) -> dict:
             {"category": unit, "duties": _fallback_duties_for_sub_unit(unit, domain, tier)}
             for unit in sub_units
         ]
-        return _finalize_fallback(purpose, specialized, tier)
+        return _finalize_fallback(purpose, specialized, domain, tier)
 
     specialized = [
         {
@@ -204,10 +270,10 @@ def _fallback(analysis: dict, sub_units=None) -> dict:
         },
     ]
 
-    return _finalize_fallback(purpose, specialized, tier)
+    return _finalize_fallback(purpose, specialized, domain, tier)
 
 
-def _finalize_fallback(purpose: str, specialized: list, tier: int) -> dict:
+def _finalize_fallback(purpose: str, specialized: list, domain: str, tier: int) -> dict:
     education_required = "درجة البكالوريوس في تخصص ذي علاقة بمجال الوظيفة أو ما يعادلها"
     if tier <= 2:
         education_required = "درجة البكالوريوس كحد أدنى في تخصص ذي علاقة، ويُفضل درجة الماجستير"
@@ -222,6 +288,7 @@ def _finalize_fallback(purpose: str, specialized: list, tier: int) -> dict:
         "job_purpose": purpose,
         "specialized_responsibilities": specialized,
         "qualifications": qualifications,
+        "technical_competencies": _fallback_technical_competencies(domain, tier),
         "generation_source": "fallback_template",
     }
 

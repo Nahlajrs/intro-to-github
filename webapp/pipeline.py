@@ -36,6 +36,7 @@ def build_content(job_title: str, sub_units_raw: str = "") -> dict:
         "core_responsibilities": core,
         "specialized_responsibilities": variable["specialized_responsibilities"],
         "qualifications": qualifications,
+        "technical_competencies": variable.get("technical_competencies", []),
         "generation_source": variable.get("generation_source", "llm"),
         "generation_error": variable.get("generation_error"),
     }

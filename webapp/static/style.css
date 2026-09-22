@@ -183,8 +183,14 @@ body {
   padding: 6px 14px;
   font-size: 0.78rem;
   border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 .btn-small:hover { background: #14284a; }
+
+.btn-danger { background: #fff; color: var(--red); border: 1.5px solid var(--red); }
+.btn-danger:hover { background: var(--red); color: #fff; }
 
 .inline-form { display: inline-block; }
 
@@ -196,6 +202,7 @@ body {
   font-size: 0.9rem;
 }
 .flash-error { background: #fbe9ee; color: var(--red); border: 1px solid #f0c2cf; }
+.flash-success { background: #eaf3ee; color: var(--green-dark); border: 1px solid #bfe0cc; }
 
 /* ---------- Result card ---------- */
 .result-card { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--gray-light); }
@@ -290,6 +297,10 @@ body {
 .qual-label { font-size: 0.78rem; color: var(--brown); }
 .qual-value { font-weight: 700; color: var(--navy); }
 
+.competency-list { margin: 0; padding-inline-start: 20px; }
+.competency-list li { margin-bottom: 10px; color: #333; }
+.competency-list strong { color: var(--navy); }
+
 .result-actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
 
 .empty-hero {
@@ -304,6 +315,25 @@ body {
 
 /* ---------- History ---------- */
 .history-panel h2 { margin: 0 0 14px; font-size: 1.05rem; color: var(--navy); }
+
+#history-search {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--gray);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+  background: #FAFAF9;
+}
+#history-search:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(40,97,64,.12);
+  background: #fff;
+}
+
+.history-actions { display: flex; gap: 8px; }
 
 .history-list { list-style: none; margin: 0; padding: 0; }
 .history-item {

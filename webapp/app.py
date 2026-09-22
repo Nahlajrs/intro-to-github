@@ -94,6 +94,17 @@ def download(record_id):
     return send_file(record["docx_file_path"], as_attachment=True, download_name=display_name)
 
 
+@app.route("/delete/<int:record_id>", methods=["POST"])
+def delete(record_id):
+    record = db.get_by_id(record_id)
+    if record:
+        if record["docx_file_path"] and os.path.exists(record["docx_file_path"]):
+            os.remove(record["docx_file_path"])
+        db.delete_record(record_id)
+        flash("تم حذف البطاقة.", "success")
+    return redirect(url_for("index"))
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
