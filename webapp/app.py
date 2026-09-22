@@ -6,7 +6,7 @@ from flask import Flask, render_template, request, send_file, url_for, redirect,
 
 import db
 from docx_builder import save_document
-from leveling import normalize_title
+from leveling import build_cache_key
 from pipeline import build_content
 
 app = Flask(__name__)
@@ -16,6 +16,13 @@ GENERATED_DIR = os.path.join(os.path.dirname(__file__), "generated")
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 db.init_db()
+
+_ARABIC_DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
+
+
+@app.template_filter("ar_num")
+def ar_num(value):
+    return str(value).translate(_ARABIC_DIGITS)
 
 
 def _safe_filename_part(text: str) -> str:
@@ -38,25 +45,25 @@ def index():
 @app.route("/generate", methods=["POST"])
 def generate():
     job_title = (request.form.get("job_title") or "").strip()
+    sub_units_raw = (request.form.get("sub_units") or "").strip()
     force_regenerate = request.form.get("force_regenerate") == "1"
 
     if not job_title:
         flash("الرجاء إدخال مسمى وظيفي.", "error")
         return redirect(url_for("index"))
 
-    normalized = normalize_title(job_title)
-    cached = None if force_regenerate else db.get_latest_by_normalized(normalized)
+    cache_key = build_cache_key(job_title, sub_units_raw)
+    cached = None if force_regenerate else db.get_latest_by_normalized(cache_key)
 
     if cached:
         content = json.loads(cached["content_json"])
         result = {"record": cached, "content": content, "from_cache": True}
     else:
-        content = build_content(job_title)
-        # اسم ملف داخلي آمن للتخزين؛ اسم التنزيل المعروض للمستخدم يُبنى بشكل منفصل.
-        temp_path = os.path.join(GENERATED_DIR, f"_tmp_{normalized[:40]}.docx")
+        content = build_content(job_title, sub_units_raw)
         record = db.insert_record(
             job_title_raw=job_title,
-            job_title_normalized=normalized,
+            job_title_normalized=cache_key,
+            sub_units_raw=sub_units_raw,
             level_tier=content["level_tier"],
             content=content,
             docx_file_path="",  # يُحدَّث أدناه بعد معرفة المعرّف والنسخة

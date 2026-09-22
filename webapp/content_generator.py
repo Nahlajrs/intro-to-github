@@ -32,16 +32,25 @@ TONE_BY_TIER = {
 ACTION_VERB_BY_TIER = {1: "القيادة", 2: "القيادة", 3: "الإشراف", 4: "الإدارة التشغيلية"}
 
 
-def _build_prompt(analysis: dict) -> str:
+def _build_prompt(analysis: dict, sub_units=None) -> str:
     tier = analysis["level_tier"]
     tone = TONE_BY_TIER[tier]
     domain = analysis["domain_name"]
     org_unit = analysis["org_unit_noun"]
-    n_areas = "٣ إلى ٤" if tier <= 4 else "٢ إلى ٣"
+
+    if sub_units:
+        units_list = "، ".join(f'"{u}"' for u in sub_units)
+        categories_instruction = f"""يجب أن تكون المجالات التخصصية ({len(sub_units)}) مطابقة تمامًا وبنفس الترتيب للإدارات/الأقسام/الوظائف التالية التابعة لهذا المسمى، دون تغيير أسمائها أو دمجها أو إضافة مجالات أخرى:
+{units_list}
+لكل مجال منها، اكتب "category" بنفس الاسم المعطى حرفيًا، مع "duties" من 8 إلى 12 عبارة تفصيلية تصف المهام الفعلية لهذا القسم/الإدارة/الوظيفة تحديدًا ضمن سياق {domain}."""
+    else:
+        n_areas = "٣ إلى ٤" if tier <= 4 else "٢ إلى ٣"
+        categories_instruction = f"""لا توجد إدارات أو أقسام تابعة محددة لهذا المسمى، لذا استنبط بنفسك ({n_areas}) مجالات تخصصية رئيسية (وظائف) تغطي دورة العمل الكاملة للتخصص مجتمعة: التخطيط والتصميم، التطوير والتنفيذ، الجودة والاختبار، الأمن والامتثال، التشغيل والصيانة، القياس والتحسين المستمر، ومواكبة التطورات التقنية والمهنية في المجال. لكل مجال "duties" من 10 إلى 15 عبارة تفصيلية."""
+
     return f"""أنت خبير موارد بشرية سعودي متخصص في كتابة بطاقات الوصف الوظيفي بالعربية الفصحى الرسمية.
 
 المسمى الوظيفي: "{analysis['job_title']}"
-المستوى الوظيفي (Tier {tier}): {analysis['level_label']}
+المستوى الوظيفي رقم {tier}: {analysis['level_label']}
 الوحدة التنظيمية المرجعية: {org_unit} {domain}
 نبرة الصياغة المطلوبة لهذا المستوى: {tone}
 
@@ -52,8 +61,8 @@ def _build_prompt(analysis: dict) -> str:
 {{
   "job_purpose": "فقرة واحدة من 60 إلى 120 كلمة تلخص الغرض الأساسي من الوظيفة بالنبرة المطلوبة أعلاه، دون ذكر اسم منظمة فعلية (استخدم الإدارة/القطاع/المركز).",
   "specialized_responsibilities": [
-    {{"category": "اسم مجال تخصصي دقيق ومحدد بمهام الوظيفة الفعلية (وليس اسمًا عامًا)", "duties": ["عبارة مسؤولية مفصّلة من جملة كاملة (25 إلى 40 كلمة تقريبًا)، تصف الإجراء والغرض منه والأداة/المنهجية/المعيار المستخدم بشكل محدد عند الإمكان — وليس عبارة قصيرة أو عنوانًا مجردًا", "... (من 10 إلى 15 عبارة تفصيلية لكل مجال)"]}},
-    "... ({n_areas} مجالات تخصصية رئيسية، كل مجال يغطي جانبًا مختلفًا من دورة العمل الكاملة للتخصص مجتمعة: التخطيط والتصميم، التطوير والتنفيذ، الجودة والاختبار، الأمن والامتثال، التشغيل والصيانة، القياس والتحسين المستمر، ومواكبة التطورات التقنية والمهنية في المجال)"
+    {{"category": "اسم المجال التخصصي", "duties": ["عبارة مسؤولية مفصّلة من جملة كاملة (25 إلى 40 كلمة تقريبًا)، تصف الإجراء والغرض منه والأداة/المنهجية/المعيار المستخدم بشكل محدد عند الإمكان — وليس عبارة قصيرة أو عنوانًا مجردًا", "..."]}},
+    "..."
   ],
   "qualifications": {{
     "education_required": "المؤهل العلمي الأدنى المطلوب (تخصص + درجة)",
@@ -62,6 +71,9 @@ def _build_prompt(analysis: dict) -> str:
     "language_english": "المستوى المطلوب (مثال: متقدم)"
   }}
 }}
+
+تعليمات specialized_responsibilities:
+{categories_instruction}
 
 متطلبات إلزامية للجودة:
 - كل عبارة في duties يجب أن تكون جملة تفصيلية مكتملة المعنى تصف: ماذا يُنفَّذ، وكيف (بأي أداة/منهجية/معيار محدد قدر الإمكان)، ولماذا (الأثر أو الغاية). تجنّب العبارات القصيرة أو العناوين المجردة مثل "الإشراف على النماذج" — استبدلها بصياغة مفصّلة على غرار "الإشراف على دورة حياة نماذج التعلّم الآلي وفق منهجية MLOps القياسية (تجريب، نشر، مراقبة، إعادة تدريب) لضمان استقرار الأداء الإنتاجي".
@@ -86,7 +98,25 @@ def _call_llm(prompt: str) -> dict:
     return json.loads(match.group(0))
 
 
-def _fallback(analysis: dict) -> dict:
+def _fallback_duties_for_sub_unit(category: str, domain: str, tier: int) -> list:
+    """بنود تفصيلية عامة لمجال تخصصي واحد (إدارة/قسم/وظيفة تابعة) عند عدم توفر ANTHROPIC_API_KEY."""
+    verb = "الإشراف على" if tier <= 3 else ("إدارة" if tier == 4 else "تنفيذ")
+    verb2 = "توجيه" if tier <= 3 else ("تنسيق" if tier == 4 else "المساهمة في")
+    return [
+        f"{verb} تخطيط وتنفيذ الأنشطة والمبادرات الخاصة بمجال {category} ضمن نطاق {domain}، بما يضمن تحقيق الأهداف المحددة لهذا المجال.",
+        f"{verb2} إعداد ومتابعة خطط العمل التفصيلية الخاصة بمجال {category}، وتحديد مؤشرات الأداء الرئيسية لها ومتابعتها بشكل دوري.",
+        f"ضمان توافق أنشطة {category} مع السياسات والإجراءات المعتمدة في {domain} والمعايير المهنية ذات الصلة بهذا المجال.",
+        f"{verb2} التنسيق مع الجهات ذات العلاقة داخل {domain} وخارجها لضمان تكامل مخرجات {category} مع بقية الأنشطة.",
+        f"متابعة المخاطر والتحديات التشغيلية المرتبطة بمجال {category} وتقييم أثرها واقتراح الحلول والإجراءات التصحيحية المناسبة لها.",
+        f"إعداد التقارير الدورية حول أداء ونتائج {category} ورفعها للجهات المعنية بدقة وفي الوقت المناسب.",
+        f"المساهمة في تطوير وتحسين الأدوات والمنهجيات المستخدمة في {category} بما يواكب أفضل الممارسات المعتمدة في هذا المجال.",
+        f"{verb2} بناء وتطوير قدرات فريق العمل المعني بمجال {category} من خلال التدريب ونقل المعرفة والممارسات الفضلى.",
+        f"مواكبة أحدث التطورات والاتجاهات المهنية ذات الصلة بمجال {category} وتقييم إمكانية الاستفادة منها لتحسين الأداء الحالي.",
+        f"متابعة مستوى رضا أصحاب المصلحة المستفيدين من أنشطة {category} والعمل على تحسين جودة الخدمة المقدمة باستمرار.",
+    ]
+
+
+def _fallback(analysis: dict, sub_units=None) -> dict:
     """صياغة احتياطية عامة عند عدم توفر ANTHROPIC_API_KEY — للتجربة المحلية فقط."""
     tier = analysis["level_tier"]
     domain = analysis["domain_name"]
@@ -121,6 +151,13 @@ def _fallback(analysis: dict) -> dict:
 
     verb = "الإشراف على" if tier <= 3 else ("إدارة" if tier == 4 else "تنفيذ")
     verb2 = "توجيه" if tier <= 3 else ("تنسيق" if tier == 4 else "المساهمة في")
+
+    if sub_units:
+        specialized = [
+            {"category": unit, "duties": _fallback_duties_for_sub_unit(unit, domain, tier)}
+            for unit in sub_units
+        ]
+        return _finalize_fallback(purpose, specialized, tier)
 
     specialized = [
         {
@@ -167,6 +204,10 @@ def _fallback(analysis: dict) -> dict:
         },
     ]
 
+    return _finalize_fallback(purpose, specialized, tier)
+
+
+def _finalize_fallback(purpose: str, specialized: list, tier: int) -> dict:
     education_required = "درجة البكالوريوس في تخصص ذي علاقة بمجال الوظيفة أو ما يعادلها"
     if tier <= 2:
         education_required = "درجة البكالوريوس كحد أدنى في تخصص ذي علاقة، ويُفضل درجة الماجستير"
@@ -185,14 +226,14 @@ def _fallback(analysis: dict) -> dict:
     }
 
 
-def generate_variable_sections(analysis: dict) -> dict:
+def generate_variable_sections(analysis: dict, sub_units=None) -> dict:
     if os.environ.get("ANTHROPIC_API_KEY"):
         try:
-            result = _call_llm(_build_prompt(analysis))
+            result = _call_llm(_build_prompt(analysis, sub_units))
             result["generation_source"] = "llm"
             return result
         except Exception as exc:  # fall back rather than break the request
-            fallback = _fallback(analysis)
+            fallback = _fallback(analysis, sub_units)
             fallback["generation_error"] = str(exc)
             return fallback
-    return _fallback(analysis)
+    return _fallback(analysis, sub_units)

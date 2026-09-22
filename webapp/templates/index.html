@@ -32,13 +32,22 @@
       <form method="post" action="{{ url_for('generate') }}" class="job-form" id="job-form">
         <label for="job_title">المسمى الوظيفي</label>
         <div class="input-row">
-          <input type="text" id="job_title" name="job_title" placeholder="مثال: مدير تنفيذي - تطوير حلول الذكاء الاصطناعي"
+          <input type="text" id="job_title" name="job_title" placeholder="مثال: مدير تنفيذي - رأس المال البشري"
                  value="{{ result.content.job_title if result else '' }}" required autocomplete="off">
           <button type="submit" class="btn btn-primary" id="submit-btn">
             <span class="btn-label">توليد البطاقة</span>
           </button>
         </div>
         <p class="hint">جرّب مسميات من مستويات مختلفة: نائب رئيس، مدير تنفيذي، مدير عام، قائد فريق، أخصائي، محلل، فني...</p>
+
+        <label for="sub_units" class="sub-units-label">الإدارات / الأقسام / الوظائف التابعة (اختياري)</label>
+        <input type="text" id="sub_units" name="sub_units"
+               placeholder="مثال: استقطاب الكفاءات، التطوير التنظيمي"
+               value="{{ result.content.sub_units_raw if result else '' }}" autocomplete="off">
+        <p class="hint">
+          اذكرها مفصولة بفاصلة لتظهر كل واحدة منها كمجال مستقل في "المهام والمسؤوليات الوظيفية المتخصصة".
+          اتركه فارغًا إذا لم توجد تبعية مباشرة (مثل مدير قسم بلا إدارات تحته) — وستُولَّد وظائف عامة للمجال بدلًا من ذلك.
+        </p>
       </form>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -52,15 +61,18 @@
       {% if result %}
         <article class="result-card">
           <div class="result-header">
-            <span class="badge badge-gold">Tier {{ result.content.level_tier }} — {{ result.content.level_label }}</span>
+            <span class="badge badge-gold">المستوى {{ result.content.level_tier | ar_num }} — {{ result.content.level_label }}</span>
             {% if result.from_cache %}
               <span class="badge badge-teal">من الأرشيف — وُلِّدت في {{ result.record.created_at[:10] }}</span>
             {% else %}
-              <span class="badge badge-green">تم التوليد الآن · نسخة {{ result.record.version }}</span>
+              <span class="badge badge-green">تم التوليد الآن · نسخة {{ result.record.version | ar_num }}</span>
             {% endif %}
           </div>
 
           <h2 class="result-title">{{ result.content.job_title }}</h2>
+          {% if result.content.sub_units_raw %}
+            <p class="sub-units-line">الإدارات/الأقسام التابعة: {{ result.content.sub_units_raw }}</p>
+          {% endif %}
 
           <section class="result-section">
             <h3><span class="section-num">1</span> الهدف العام للوظيفة</h3>
@@ -131,6 +143,7 @@
             </a>
             <form method="post" action="{{ url_for('generate') }}" class="inline-form">
               <input type="hidden" name="job_title" value="{{ result.content.job_title }}">
+              <input type="hidden" name="sub_units" value="{{ result.content.sub_units_raw }}">
               <input type="hidden" name="force_regenerate" value="1">
               <button type="submit" class="btn btn-secondary">إعادة التوليد (نسخة جديدة)</button>
             </form>
@@ -150,9 +163,12 @@
           {% for row in history %}
             <li class="history-item">
               <div class="history-title">{{ row.content.job_title }}</div>
+              {% if row.sub_units_raw %}
+                <div class="history-subunits">{{ row.sub_units_raw }}</div>
+              {% endif %}
               <div class="history-meta">
-                <span class="chip">Tier {{ row.level_tier }}</span>
-                <span>نسخة {{ row.version }}</span>
+                <span class="chip">المستوى {{ row.level_tier | ar_num }}</span>
+                <span>نسخة {{ row.version | ar_num }}</span>
                 <span>{{ row.updated_at[:10] }}</span>
               </div>
               <a class="btn btn-small" href="{{ url_for('download', record_id=row.id) }}">تنزيل</a>

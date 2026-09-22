@@ -59,6 +59,28 @@ def extract_domain(job_title: str, matched_keyword: str) -> str:
     return remainder if remainder else title
 
 
+_SUB_UNIT_SPLIT = re.compile(r"[،,]")
+
+
+def split_sub_units(raw: str) -> list:
+    """يفصل حقل الإدارات/الأقسام/الوظائف التابعة إلى قائمة نصوص كما كتبها المستخدم (بلا تطبيع)."""
+    if not raw or not raw.strip():
+        return []
+    parts = _SUB_UNIT_SPLIT.split(raw)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def normalize_sub_units(raw: str) -> str:
+    """نسخة مطبَّعة من الإدارات التابعة تُستخدم فقط كجزء من مفتاح المطابقة في الأرشيف."""
+    return "|".join(normalize_title(p) for p in split_sub_units(raw))
+
+
+def build_cache_key(job_title: str, sub_units_raw: str) -> str:
+    """مفتاح مطابقة الأرشيف: يجمع المسمى الوظيفي مع الإدارات/الأقسام التابعة (إن وُجدت)،
+    بحيث يُعامل نفس المسمى بتبعيات مختلفة كسجل مستقل في الأرشيف."""
+    return f"{normalize_title(job_title)}::{normalize_sub_units(sub_units_raw)}"
+
+
 def analyze(job_title: str) -> dict:
     tier, org_unit_noun, template_ref, level_label, matched_keyword = detect_tier(job_title)
     domain_name = extract_domain(job_title, matched_keyword)

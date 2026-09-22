@@ -22,6 +22,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_title_raw TEXT NOT NULL,
             job_title_normalized TEXT NOT NULL,
+            sub_units_raw TEXT NOT NULL DEFAULT '',
             level_tier INTEGER NOT NULL,
             content_json TEXT NOT NULL,
             docx_file_path TEXT NOT NULL,
@@ -31,6 +32,11 @@ def init_db():
         )
         """
     )
+    # ترقية قواعد بيانات محلية أُنشئت قبل إضافة عمود sub_units_raw.
+    try:
+        conn.execute("ALTER TABLE job_descriptions ADD COLUMN sub_units_raw TEXT NOT NULL DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_job_title_normalized ON job_descriptions(job_title_normalized)"
     )
@@ -64,7 +70,7 @@ def get_by_id(record_id: int):
 
 
 def insert_record(job_title_raw: str, job_title_normalized: str, level_tier: int,
-                   content: dict, docx_file_path: str) -> dict:
+                   content: dict, docx_file_path: str, sub_units_raw: str = "") -> dict:
     conn = get_connection()
     existing = conn.execute(
         "SELECT MAX(version) AS max_version FROM job_descriptions WHERE job_title_normalized = ?",
@@ -75,12 +81,12 @@ def insert_record(job_title_raw: str, job_title_normalized: str, level_tier: int
     cursor = conn.execute(
         """
         INSERT INTO job_descriptions
-            (job_title_raw, job_title_normalized, level_tier, content_json,
+            (job_title_raw, job_title_normalized, sub_units_raw, level_tier, content_json,
              docx_file_path, version, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (job_title_raw, job_title_normalized, level_tier, json.dumps(content, ensure_ascii=False),
-         docx_file_path, next_version, now, now),
+        (job_title_raw, job_title_normalized, sub_units_raw, level_tier,
+         json.dumps(content, ensure_ascii=False), docx_file_path, next_version, now, now),
     )
     conn.commit()
     record_id = cursor.lastrowid
